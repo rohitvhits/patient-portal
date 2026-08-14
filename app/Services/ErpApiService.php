@@ -46,12 +46,26 @@ class ErpApiService
         return ['status' => $response->status(), 'body' => $response->json() ?? []];
     }
 
-    public function appointments(string $mobile): array
+    /**
+     * Null means the ERP call itself failed (so callers should leave any local
+     * cache alone); an array — even empty — is an authoritative, current
+     * snapshot the caller can safely sync/delete stale local rows against.
+     */
+    public function appointments(string $mobile): ?array
     {
         $response = $this->client()->get('/appointments', ['mobile' => $mobile]);
         $this->log('GET', '/appointments', $response->status());
 
-        return $response->json('data') ?? [];
+        if (!$response->successful()) {
+            return null;
+        }
+
+        // A 200 with a missing/malformed "data" key is treated the same as a
+        // failed call (null) — only a genuine array (including []) counts as an
+        // authoritative snapshot callers may delete stale local rows against.
+        $data = $response->json('data');
+
+        return is_array($data) ? $data : null;
     }
 
     public function appointmentDetail(string $mobile, int $erpAppointmentId): ?array
@@ -62,12 +76,25 @@ class ErpApiService
         return $response->successful() ? $response->json('data') : null;
     }
 
-    public function documents(string $mobile, int $erpAppointmentId): array
+    /**
+     * Null means the ERP call itself failed (so callers should leave any local
+     * cache alone); an array — even empty — is an authoritative, current
+     * snapshot the caller can safely sync/delete stale local rows against.
+     */
+    public function documents(string $mobile, int $erpAppointmentId): ?array
     {
         $response = $this->client()->get('/documents', ['mobile' => $mobile, 'appointment_id' => $erpAppointmentId]);
         $this->log('GET', '/documents', $response->status());
 
-        return $response->json('data') ?? [];
+        if (!$response->successful()) {
+            return null;
+        }
+
+        // Same rule as appointments() above — a missing/malformed "data" key is
+        // treated as a failed call, not as "zero documents".
+        $data = $response->json('data');
+
+        return is_array($data) ? $data : null;
     }
 
     /**

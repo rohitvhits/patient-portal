@@ -27,7 +27,15 @@ class AppointmentController extends Controller
         $appointmentTelehealth = collect();
         $appointmentSchedules = collect();
 
-        $this->syncAppointments($patientUser, $remote, $appointmentTelehealth, $appointmentSchedules);
+        // $remote is null only when the ERP call itself failed — in that case we
+        // leave the local cache untouched (fail open) rather than risk wiping it
+        // out or showing an empty list. When $remote is an array (even empty) it's
+        // an authoritative snapshot, so syncAppointments() also deletes any local
+        // rows the ERP no longer reports (e.g. appointments deleted upstream) —
+        // previously those stuck around forever since we only ever upserted.
+        if ($remote !== null) {
+            $this->syncAppointments($patientUser, $remote, $appointmentTelehealth, $appointmentSchedules);
+        }
 
         $patientIdentities = $patientUser->patients()
             ->get()
@@ -125,15 +133,26 @@ class AppointmentController extends Controller
 
         $remoteDocuments = $this->erpApi->documents($patientUser->mobile, $appointment->erp_appointment_id);
 
-        foreach ($remoteDocuments as $doc) {
-            AppointmentDocument::updateOrCreate(
-                ['appointment_id' => $appointment->id, 'erp_document_id' => $doc['id']],
-                [
-                    'document_name' => $doc['document_name'] ?? null,
-                    'extension' => $doc['extension'] ?? null,
-                    'size_in_bytes' => $doc['size_in_bytes'] ?? null,
-                ]
-            );
+        // null means the ERP call failed — leave the local cache as-is (fail open).
+        // An array (even empty) is authoritative, so beyond upserting we also drop
+        // any locally cached document the ERP no longer reports for this
+        // appointment (deleted upstream) instead of leaving it around forever.
+        if ($remoteDocuments !== null) {
+            foreach ($remoteDocuments as $doc) {
+                AppointmentDocument::updateOrCreate(
+                    ['appointment_id' => $appointment->id, 'erp_document_id' => $doc['id']],
+                    [
+                        'document_name' => $doc['document_name'] ?? null,
+                        'extension' => $doc['extension'] ?? null,
+                        'size_in_bytes' => $doc['size_in_bytes'] ?? null,
+                    ]
+                );
+            }
+
+            $remoteDocumentIds = array_column($remoteDocuments, 'id');
+            $appointment->documents()
+                ->whereNotIn('erp_document_id', $remoteDocumentIds)
+                ->delete();
         }
 
         $documents = $appointment->documents()->orderByDesc('id')->get();
@@ -220,6 +239,14 @@ class AppointmentController extends Controller
                 ['appointment_date', 'appointment_time', 'status', 'location_name', 'doctor_name', 'service_name', 'agency_name', 'updated_at']
             );
         }
+
+        // $remote is the full, current list for this patient (never a partial or
+        // failed fetch — see index()), so anything cached locally that isn't in it
+        // anymore was deleted/cancelled upstream in the ERP. Drop it here instead
+        // of leaving stale rows around forever. Cascades to appointment_documents.
+        $patientUser->appointments()
+            ->whereNotIn('erp_appointment_id', array_keys($appointmentRows))
+            ->delete();
     }
 
     protected function syncPatientIdentity(PatientUser $patientUser, array $row): void

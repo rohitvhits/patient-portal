@@ -33,7 +33,7 @@
                             </span>
                             <span class="hidden min-w-0 text-left leading-tight sm:block">
                                 <span class="block truncate text-sm font-semibold text-white">{{ $headerName }}</span>
-                                <span class="block truncate text-xs font-medium text-brand-200/80">Patient Portal</span>
+                                {{-- <span class="block truncate text-xs font-medium text-brand-200/80">Patient Portal</span> --}}
                             </span>
                             <svg data-account-chevron class="h-4 w-4 shrink-0 text-brand-200/80 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
@@ -45,7 +45,7 @@
                                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ $initials }}</span>
                                 <div class="min-w-0 leading-tight">
                                     <p class="truncate text-sm font-semibold text-slate-900">{{ $headerName }}</p>
-                                    <p class="truncate text-xs font-medium text-slate-500">Patient Portal</p>
+                                    {{-- <p class="truncate text-xs font-medium text-slate-500">Patient Portal</p> --}}
                                 </div>
                             </div>
                             <div class="hidden px-2.5 py-2 sm:block">

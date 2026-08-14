@@ -143,7 +143,7 @@
                 <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
                 </svg>
-                <input id="appointmentSearch" name="search" type="search" value="{{ $filters['search'] }}" placeholder="Search by patient, agency, or service" aria-label="Search appointments" class="w-full rounded-lg border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10">
+                <input id="appointmentSearch" name="search" type="search" value="{{ $filters['search'] }}" placeholder="Search by portal name, agency, or service" aria-label="Search appointments" class="w-full rounded-lg border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10">
             </div>
             <select name="status" aria-label="Filter by status" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10">
                 <option value="">All statuses</option>
@@ -181,7 +181,7 @@
                 <thead>
                     <tr class="border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
                         <th class="px-6 py-4 font-semibold">Date &amp; Time</th>
-                        <th class="px-6 py-4 font-semibold">Patient</th>
+                        <th class="px-6 py-4 font-semibold">Name</th>
                         <th class="px-6 py-4 font-semibold">Agency</th>
                         <th class="px-6 py-4 font-semibold">Service</th>
                         <th class="px-6 py-4 font-semibold">Status</th>

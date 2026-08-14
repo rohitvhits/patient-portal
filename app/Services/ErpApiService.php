@@ -35,7 +35,7 @@ class ErpApiService
         $response = $this->client()->post('/request-otp', ['mobile' => $mobile]);
         $this->log('POST', '/request-otp', $response->status());
 
-        return $response->json() ?? [];
+        return ['status' => $response->status(), 'body' => $response->json() ?? []];
     }
 
     public function verifyOtp(string $mobile, string $otp): array

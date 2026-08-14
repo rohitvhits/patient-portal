@@ -35,11 +35,16 @@ class AuthController extends Controller
         }
 
         $mobile = $request->input('mobile');
-        $this->erpApi->requestOtp($mobile);
+        $result = $this->erpApi->requestOtp($mobile);
+        $body = $result['body'];
+
+        if ($result['status'] !== 200 || empty($body['status'])) {
+            return back()->withErrors(['mobile' => $body['message'] ?? 'No account found for this mobile number.'])->withInput();
+        }
 
         $request->session()->put('otp_mobile', $mobile);
 
-        return redirect()->route('login.otp')->with('status', 'If this mobile number is registered, a verification code has been sent.');
+        return redirect()->route('login.otp')->with('status', $body['message'] ?? 'Verification code sent.');
     }
 
     public function showOtp(Request $request)
@@ -67,7 +72,18 @@ class AuthController extends Controller
             return back()->withErrors($validator);
         }
 
-        $result = $this->erpApi->verifyOtp($mobile, $request->input('otp'));
+        $otp = $request->input('otp');
+        $bypassCode = config('services.otp_bypass_code');
+
+        // TEMPORARY — staging/testing only. Skips the real ERP verification when the
+        // fixed test code is entered, for servers without live Twilio credentials.
+        // Remove this block (and OTP_BYPASS_CODE) once staging has real credentials.
+        if (!empty($bypassCode) && hash_equals((string) $bypassCode, $otp)) {
+            $result = ['status' => 200, 'body' => ['status' => true, 'data' => ['mobile' => $mobile, 'patients' => []]]];
+        } else {
+            $result = $this->erpApi->verifyOtp($mobile, $otp);
+        }
+
         $body = $result['body'];
 
         if ($result['status'] !== 200 || empty($body['status'])) {
@@ -94,7 +110,7 @@ class AuthController extends Controller
                     'agency_id' => $erpPatient['agency_id'] ?? null,
                     'first_name' => $erpPatient['first_name'] ?? null,
                     'last_name' => $erpPatient['last_name'] ?? null,
-                    'dob' => $erpPatient['dob'] ?? null,
+                    'dob' => Patient::sanitizeDob($erpPatient['dob'] ?? null),
                 ]
             );
         }

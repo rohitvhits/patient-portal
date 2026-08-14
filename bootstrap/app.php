@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('appointments.index'));
+
+        $middleware->alias([
+            'patient.idle' => \App\Http\Middleware\PatientIdleTimeout::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

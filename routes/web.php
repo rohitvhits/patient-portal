@@ -14,7 +14,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/login/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('login.verify-otp');
 });
 
-Route::middleware('auth:patient')->group(function () {
+Route::middleware(['auth:patient', 'patient.idle'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');

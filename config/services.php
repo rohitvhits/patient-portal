@@ -40,4 +40,13 @@ return [
         'token' => env('ERP_API_TOKEN'),
     ],
 
+    /*
+    | TEMPORARY — staging/testing only. When set, this exact 6-digit code always
+    | verifies successfully without calling the ERP, so QA can log in on servers
+    | that don't have live Twilio credentials to receive the real SMS code.
+    | Leave OTP_BYPASS_CODE unset in production. Remove this block once staging
+    | has real Twilio credentials.
+    */
+    'otp_bypass_code' => env('OTP_BYPASS_CODE'),
+
 ];

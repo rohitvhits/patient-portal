@@ -6,10 +6,20 @@
 @source "../**/*.js";
 @source "../**/*.vue";
 
+/*
+ * NY Best Medical — Patient Portal design system
+ * -------------------------------------------------
+ * Foundation:  slate (deep navy) for chrome/ink, warm off-white canvas for surfaces.
+ * Brand:       teal — the primary interactive/accent color.
+ * Semantic:    success / warning / danger / info for status communication (never color-only —
+ *              every status also carries a label + icon/dot in markup).
+ * Elevation:   two soft, low-contrast shadow steps; avoid harsh drop shadows.
+ */
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /* Brand — sophisticated medical teal */
     --color-brand-50: #eff8f8;
     --color-brand-100: #d7edee;
     --color-brand-200: #b3dbde;
@@ -21,4 +31,130 @@
     --color-brand-800: #21444c;
     --color-brand-900: #1e3a41;
     --color-brand-950: #0d2126;
+
+    /* Canvas — warm off-white page background (distinct from pure white cards) */
+    --color-canvas: #f6f7f5;
+
+    /* Semantic status colors — muted, harmonized with the teal brand rather than stock bright hues */
+    --color-success-50: #f0f9f3;
+    --color-success-100: #dcf0e2;
+    --color-success-500: #2f9e5c;
+    --color-success-600: #24824a;
+    --color-success-700: #1f6a3d;
+
+    --color-warning-50: #fdf7ed;
+    --color-warning-100: #f8e9c9;
+    --color-warning-500: #b8790f;
+    --color-warning-600: #97630c;
+    --color-warning-700: #7a4f0a;
+
+    --color-danger-50: #fbf2f1;
+    --color-danger-100: #f3dbd8;
+    --color-danger-500: #b3452f;
+    --color-danger-600: #963a27;
+    --color-danger-700: #7a2f20;
+
+    --color-info-50: #f0f6f9;
+    --color-info-100: #d9e9f0;
+    --color-info-500: #3a7ca5;
+    --color-info-600: #2f6689;
+    --color-info-700: #26526f;
+
+    /* Elevation — soft, low-contrast shadows for a calm, premium surface */
+    --shadow-soft: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.03);
+    --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.10);
+    --shadow-lift: 0 4px 8px -2px rgb(15 23 42 / 0.06), 0 16px 32px -12px rgb(15 23 42 / 0.14);
+}
+
+@layer base {
+    ::selection {
+        background-color: var(--color-brand-200);
+        color: var(--color-brand-950);
+    }
+
+    /*
+     * A near-invisible dot grid on the page canvas — the kind of detail that reads as
+     * "designed" rather than "empty" without competing with content. Healthcare-neutral,
+     * not decorative: no icons, no illustration, just quiet structure.
+     */
+    body {
+        background-image: radial-gradient(circle, rgb(15 23 42 / 0.05) 1px, transparent 1px);
+        background-size: 22px 22px;
+    }
+}
+
+@layer utilities {
+    /* A gentle, one-time entrance for hero/summary cards — not a loop, so it never feels gimmicky. */
+    @keyframes fade-slide-up {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* A slow "breathing" scale for a small accent element (e.g. the greeting avatar) — a quiet touch of life. */
+    @keyframes gentle-pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.08);
+        }
+    }
+
+    /* A very slow drift for large, soft background blobs (e.g. the guest/auth canvas) — fills empty
+     * side space on wide screens with quiet motion instead of dead white. Kept subtle: low opacity,
+     * heavily blurred, never competes with foreground content. */
+    @keyframes drift-slow {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+        }
+        33% {
+            transform: translate(50px, -40px) scale(1.12);
+        }
+        66% {
+            transform: translate(-30px, 25px) scale(0.95);
+        }
+    }
+
+    @keyframes drift-slow-reverse {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+        }
+        33% {
+            transform: translate(-45px, 35px) scale(1.1);
+        }
+        66% {
+            transform: translate(35px, -30px) scale(0.94);
+        }
+    }
+
+    .animate-fade-slide-up {
+        animation: fade-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .animate-gentle-pulse {
+        animation: gentle-pulse 3.2s ease-in-out infinite;
+    }
+
+    .animate-drift-slow {
+        animation: drift-slow 8s ease-in-out infinite;
+    }
+
+    .animate-drift-slow-reverse {
+        animation: drift-slow-reverse 10s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-fade-slide-up,
+        .animate-gentle-pulse,
+        .animate-drift-slow,
+        .animate-drift-slow-reverse {
+            animation: none;
+        }
+    }
 }

@@ -15,6 +15,7 @@ class Appointment extends Model
         'location_name',
         'doctor_name',
         'service_name',
+        'agency_name',
     ];
 
     public function patientUser()

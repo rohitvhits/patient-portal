@@ -95,6 +95,23 @@
         $telehealthIsCarbon = $telehealthDateObj instanceof \Carbon\Carbon;
     @endphp
 
+    @if ($appointmentUnavailable ?? false)
+        <section class="mb-6 flex items-start gap-3 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 text-sm font-medium text-warning-800 shadow-soft">
+            <svg class="mt-0.5 h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14.18A2 2 0 004 21h16a2 2 0 001.89-2.96L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>We couldn't refresh this appointment from the appointment system just now — details below may be out of date.</span>
+        </section>
+    @endif
+    @if ($documentsUnavailable ?? false)
+        <section class="mb-6 flex items-start gap-3 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 text-sm font-medium text-warning-800 shadow-soft">
+            <svg class="mt-0.5 h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14.18A2 2 0 004 21h16a2 2 0 001.89-2.96L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>We couldn't load documents for this appointment just now, so nothing is shown below. Please refresh in a moment.</span>
+        </section>
+    @endif
+
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <a href="{{ route('appointments.index') }}" class="-mx-2 -my-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 outline-none transition hover:bg-slate-100 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500/40">
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

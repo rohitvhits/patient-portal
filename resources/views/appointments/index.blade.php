@@ -130,6 +130,15 @@
         });
     </script>
 
+    @if ($erpUnavailable ?? false)
+        <section class="mb-6 flex items-start gap-3 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 text-sm font-medium text-warning-800 shadow-soft">
+            <svg class="mt-0.5 h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14.18A2 2 0 004 21h16a2 2 0 001.89-2.96L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>We couldn't reach the appointment system just now, so nothing is shown below. Please refresh in a moment.</span>
+        </section>
+    @endif
+
     <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Filter appointments</h2>

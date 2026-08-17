@@ -26,64 +26,93 @@ class AppointmentController extends Controller
         $remote = $this->erpApi->appointments($patientUser->mobile);
         $appointmentTelehealth = collect();
         $appointmentSchedules = collect();
+        $erpUnavailable = false;
 
-        // $remote is null only when the ERP call itself failed — in that case we
-        // leave the local cache untouched (fail open) rather than risk wiping it
-        // out or showing an empty list. When $remote is an array (even empty) it's
-        // an authoritative snapshot, so syncAppointments() also deletes any local
-        // rows the ERP no longer reports (e.g. appointments deleted upstream) —
-        // previously those stuck around forever since we only ever upserted.
-        if ($remote !== null) {
+        if ($remote === null) {
+            // The ERP call itself failed. nybesterp is a live, separately-changing
+            // system — silently falling back to whatever is sitting in the local
+            // `appointments` table would risk showing data that's since changed or
+            // been deleted upstream, with no indication it's stale. So on failure
+            // we show nothing (not old cached rows) and surface the failure instead.
+            $erpUnavailable = true;
+            $liveRows = collect();
+            $patientIdentities = collect();
+        } else {
+            // `patients`/`appointments` are written here purely as a local audit
+            // trail (and to hand out an internal id for building /appointments/{id}
+            // links) — never read back for what actually gets *displayed* below.
+            // Every value rendered on this page comes straight from $remote, this
+            // request's live ERP response. An array (even empty) is authoritative,
+            // so this also deletes any local rows the ERP no longer reports.
             $this->syncAppointments($patientUser, $remote, $appointmentTelehealth, $appointmentSchedules);
-        }
 
-        $patientIdentities = $patientUser->patients()
-            ->get()
-            ->keyBy('erp_patient_id');
+            $idMap = $patientUser->appointments()->pluck('id', 'erp_appointment_id');
+
+            $liveRows = collect($remote)->map(function ($row) use ($idMap) {
+                return (new Appointment())->forceFill([
+                    'id' => $idMap[$row['id']] ?? null,
+                    'erp_appointment_id' => $row['id'],
+                    'appointment_date' => $row['appointment_date'] ?? null,
+                    'appointment_time' => $row['appointment_time'] ?? null,
+                    'status' => $row['status'] ?? null,
+                    'location_name' => $row['location_name'] ?? null,
+                    'doctor_name' => $row['doctor_name'] ?? null,
+                    'service_name' => $row['service_name'] ?? null,
+                    'agency_name' => $this->agencyNameFromRow($row),
+                ]);
+            })->filter(fn ($appointment) => $appointment->id !== null)->values();
+
+            $patientIdentities = $patientUser->patients()
+                ->get()
+                ->keyBy('erp_patient_id');
+        }
 
         $search = trim((string) $request->query('search', ''));
         $status = trim((string) $request->query('status', ''));
         $agency = trim((string) $request->query('agency', ''));
 
         // Patient identities are a small, already-loaded set (family members sharing
-        // this login) — matched here in PHP rather than via a SQL join, then folded
-        // into the same erp_appointment_id space the appointments table filters on
-        // (an ERP appointment id and its owning patient's erp_patient_id are the same
-        // patient_master row id — see AppointmentController::syncPatientIdentity).
+        // this login) — matched here in PHP, then folded into the same
+        // erp_appointment_id space the live rows above filter on (an ERP appointment
+        // id and its owning patient's erp_patient_id are the same patient_master row
+        // id — see AppointmentController::syncPatientIdentity).
         $matchingPatientIds = $search === ''
             ? collect()
             : $patientIdentities->filter(fn ($patient) => str_contains(strtolower($patient->full_name), strtolower($search)))->keys();
 
-        $query = $patientUser->appointments();
+        $filtered = $liveRows->filter(function ($appointment) use ($search, $status, $agency, $matchingPatientIds) {
+            if ($search !== '') {
+                $haystack = strtolower($appointment->service_name.' '.$appointment->agency_name.' '.$appointment->status.' '.$appointment->erp_appointment_id);
+                $matchesPatient = $matchingPatientIds->contains($appointment->erp_appointment_id);
 
-        if ($search !== '') {
-            $query->where(function ($q) use ($search, $matchingPatientIds) {
-                $like = '%'.$search.'%';
-                $q->where('service_name', 'like', $like)
-                    ->orWhere('agency_name', 'like', $like)
-                    ->orWhere('status', 'like', $like)
-                    ->orWhere('erp_appointment_id', 'like', $like);
-
-                if ($matchingPatientIds->isNotEmpty()) {
-                    $q->orWhereIn('erp_appointment_id', $matchingPatientIds);
+                if (!str_contains($haystack, strtolower($search)) && !$matchesPatient) {
+                    return false;
                 }
-            });
-        }
+            }
 
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
+            if ($status !== '' && $appointment->status !== $status) {
+                return false;
+            }
 
-        if ($agency !== '') {
-            $query->where('agency_name', $agency);
-        }
+            if ($agency !== '' && $appointment->agency_name !== $agency) {
+                return false;
+            }
 
-        $appointments = $query->orderByDesc('appointment_date')
-            ->paginate(25)
-            ->withQueryString();
+            return true;
+        })->sortByDesc('appointment_date')->values();
 
-        $statusOptions = $patientUser->appointments()->whereNotNull('status')->distinct()->orderBy('status')->pluck('status');
-        $agencyOptions = $patientUser->appointments()->whereNotNull('agency_name')->distinct()->orderBy('agency_name')->pluck('agency_name');
+        $statusOptions = $liveRows->pluck('status')->filter()->unique()->sort()->values();
+        $agencyOptions = $liveRows->pluck('agency_name')->filter()->unique()->sort()->values();
+
+        $perPage = 25;
+        $page = (int) ($request->query('page', 1)) ?: 1;
+        $appointments = new \Illuminate\Pagination\LengthAwarePaginator(
+            $filtered->forPage($page, $perPage)->values(),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $this->activityLog->log($patientUser->id, 'appointment_list_viewed');
 
@@ -96,6 +125,7 @@ class AppointmentController extends Controller
             'statusOptions' => $statusOptions,
             'agencyOptions' => $agencyOptions,
             'filters' => ['search' => $search, 'status' => $status, 'agency' => $agency],
+            'erpUnavailable' => $erpUnavailable,
         ]);
     }
 
@@ -108,10 +138,16 @@ class AppointmentController extends Controller
             abort(403);
         }
 
-        $detail = $this->erpApi->appointmentDetail($patientUser->mobile, $appointment->erp_appointment_id);
+        // Detail and documents are two independent ERP calls — fired concurrently
+        // (one connection pool) instead of one-after-another, so this page waits on
+        // the slower of the two calls rather than the sum of both.
+        $pooled = $this->erpApi->appointmentDetailAndDocuments($patientUser->mobile, $appointment->erp_appointment_id);
+        $detail = $pooled['detail'];
+        $remoteDocuments = $pooled['documents'];
         $appointmentAgencyName = null;
         $telehealth = null;
         $schedule = null;
+        $appointmentUnavailable = false;
 
         if ($detail) {
             $this->syncPatientIdentity($patientUser, $detail);
@@ -119,6 +155,9 @@ class AppointmentController extends Controller
             $telehealth = $this->telehealthFromRow($detail);
             $schedule = $this->scheduleFromRow($detail);
 
+            // save() here is an audit copy only — $appointment (in memory) now holds
+            // this request's live ERP values, and that in-memory object (not a fresh
+            // SELECT) is what gets handed to the view below.
             $appointment->fill([
                 'appointment_date' => $detail['appointment_date'] ?? $appointment->appointment_date,
                 'appointment_time' => $detail['appointment_time'] ?? $appointment->appointment_time,
@@ -127,17 +166,28 @@ class AppointmentController extends Controller
                 'doctor_name' => $detail['doctor_name'] ?? $appointment->doctor_name,
                 'service_name' => $detail['service_name'] ?? $appointment->service_name,
             ])->save();
+        } else {
+            // ERP call failed — we still show the last-known audit copy (there is no
+            // other source of truth for this one appointment on this page), but flag
+            // it so the view can tell the patient it may not be current.
+            $appointmentUnavailable = true;
         }
 
         $this->activityLog->log($patientUser->id, 'appointment_detail_viewed', "appointment_id={$appointment->id}");
 
-        $remoteDocuments = $this->erpApi->documents($patientUser->mobile, $appointment->erp_appointment_id);
+        $documentsUnavailable = false;
 
-        // null means the ERP call failed — leave the local cache as-is (fail open).
-        // An array (even empty) is authoritative, so beyond upserting we also drop
-        // any locally cached document the ERP no longer reports for this
-        // appointment (deleted upstream) instead of leaving it around forever.
-        if ($remoteDocuments !== null) {
+        if ($remoteDocuments === null) {
+            // ERP call failed — don't pretend the local cache is a current document
+            // list; show nothing rather than possibly-stale/possibly-deleted files.
+            $documentsUnavailable = true;
+            $documents = collect();
+        } else {
+            // `appointment_documents` is written here purely as a local audit trail
+            // (and to hand out an internal id for the download route) — the list
+            // actually rendered below is built straight from $remoteDocuments, this
+            // request's live ERP response. An array (even empty) is authoritative,
+            // so any locally cached document the ERP no longer reports gets dropped.
             foreach ($remoteDocuments as $doc) {
                 AppointmentDocument::updateOrCreate(
                     ['appointment_id' => $appointment->id, 'erp_document_id' => $doc['id']],
@@ -153,9 +203,21 @@ class AppointmentController extends Controller
             $appointment->documents()
                 ->whereNotIn('erp_document_id', $remoteDocumentIds)
                 ->delete();
+
+            $idMap = $appointment->documents()->pluck('id', 'erp_document_id');
+
+            $documents = collect($remoteDocuments)->map(function ($doc) use ($idMap, $appointment) {
+                return (new AppointmentDocument())->forceFill([
+                    'id' => $idMap[$doc['id']] ?? null,
+                    'appointment_id' => $appointment->id,
+                    'erp_document_id' => $doc['id'],
+                    'document_name' => $doc['document_name'] ?? null,
+                    'extension' => $doc['extension'] ?? null,
+                    'size_in_bytes' => $doc['size_in_bytes'] ?? null,
+                ]);
+            })->filter(fn ($document) => $document->id !== null)->sortByDesc('id')->values();
         }
 
-        $documents = $appointment->documents()->orderByDesc('id')->get();
         $patientIdentity = $patientUser->patients()
             ->where('erp_patient_id', $appointment->erp_appointment_id)
             ->first();
@@ -170,6 +232,8 @@ class AppointmentController extends Controller
             'documents' => $documents,
             'patientIdentity' => $patientIdentity,
             'patientUser' => $patientUser,
+            'appointmentUnavailable' => $appointmentUnavailable,
+            'documentsUnavailable' => $documentsUnavailable,
         ]);
     }
 

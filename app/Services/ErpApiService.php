@@ -98,6 +98,48 @@ class ErpApiService
     }
 
     /**
+     * The appointment detail page needs both the appointment's own details and its
+     * document list — previously two sequential round trips to the ERP (wait for
+     * one, then start the other), which doubled the page's ERP latency for no
+     * reason since neither call depends on the other's result. Fired concurrently
+     * over one connection pool instead, so the page waits roughly as long as the
+     * slower of the two calls, not the sum of both.
+     */
+    public function appointmentDetailAndDocuments(string $mobile, int $erpAppointmentId): array
+    {
+        $baseUrl = config('services.erp.base_url');
+        $token = config('services.erp.token');
+
+        $responses = Http::pool(fn ($pool) => [
+            $pool->as('detail')
+                ->baseUrl($baseUrl)->withHeaders(['Authorization' => $token])->timeout(15)->acceptJson()
+                ->get("/appointments/{$erpAppointmentId}", ['mobile' => $mobile]),
+            $pool->as('documents')
+                ->baseUrl($baseUrl)->withHeaders(['Authorization' => $token])->timeout(15)->acceptJson()
+                ->get('/documents', ['mobile' => $mobile, 'appointment_id' => $erpAppointmentId]),
+        ]);
+
+        $detailResponse = $responses['detail'];
+        $documentsResponse = $responses['documents'];
+
+        // A connection-level failure (timeout, refused, etc.) surfaces as a
+        // ConnectionException/Throwable instead of a Response from the pool —
+        // treat that the exact same as a non-2xx response: call failed, null.
+        $detailOk = $detailResponse instanceof \Illuminate\Http\Client\Response && $detailResponse->successful();
+        $documentsOk = $documentsResponse instanceof \Illuminate\Http\Client\Response && $documentsResponse->successful();
+
+        $this->log('GET', "/appointments/{$erpAppointmentId}", $detailOk ? $detailResponse->status() : null);
+        $this->log('GET', '/documents', $documentsOk ? $documentsResponse->status() : null);
+
+        $documentsData = $documentsOk ? $documentsResponse->json('data') : null;
+
+        return [
+            'detail' => $detailOk ? $detailResponse->json('data') : null,
+            'documents' => is_array($documentsData) ? $documentsData : null,
+        ];
+    }
+
+    /**
      * Streams the document bytes back from the ERP. Returns null on failure
      * so the controller can 404 instead of forwarding a broken response.
      */

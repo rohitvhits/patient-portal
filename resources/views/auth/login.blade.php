@@ -23,7 +23,7 @@
                     id="mobile"
                     name="mobile"
                     value="{{ old('mobile') }}"
-                    placeholder="(555) 123-4567"
+                    placeholder="please enter mobile number"
                     required
                     autofocus
                     class="block w-full min-w-0 border-0 bg-transparent py-3 pr-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-0"

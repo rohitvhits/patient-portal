@@ -10,7 +10,7 @@
             }
 
             try {
-                return \Carbon\Carbon::parse($value)->format('M d, Y');
+                return \Carbon\Carbon::parse($value)->format('m/d/Y');
             } catch (\Throwable $e) {
                 return $value;
             }
@@ -34,27 +34,32 @@
 
             return $parts->take(2)->map(fn ($part) => strtoupper(substr($part, 0, 1)))->implode('') ?: 'P';
         };
-        // The ERP stores the Schedule Appointment's precise time range as "16:29:00 - 19:32:00" —
-        // reformat each side to match the rest of the app's 12-hour time style.
-        $formatTimeRange = function (?string $range) {
+        // The ERP stores time as either a "16:29:00 - 19:32:00" range (Schedule Appointment)
+        // or a bare "08:00 - 08:15" / single value (Telehealth) — always 24-hour, never AM/PM.
+        // Reformat every side to the app's 12-hour AM/PM style, single time or range alike.
+        $formatTimePart = function (string $t) {
+            $t = trim($t);
+            if ($t === '') {
+                return $t;
+            }
+
+            try {
+                return \Carbon\Carbon::parse($t)->format('g:i A');
+            } catch (\Throwable $e) {
+                return $t;
+            }
+        };
+        $formatTimeRange = function (?string $range) use ($formatTimePart) {
             if (empty($range)) {
                 return null;
             }
 
             $parts = array_map('trim', explode(' - ', $range));
-            if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-                return $range;
+            if (count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '') {
+                return $formatTimePart($parts[0]).' – '.$formatTimePart($parts[1]);
             }
 
-            $part = function (string $t) {
-                try {
-                    return \Carbon\Carbon::createFromFormat('H:i:s', $t)->format('g:i A');
-                } catch (\Throwable $e) {
-                    return $t;
-                }
-            };
-
-            return $part($parts[0]).' – '.$part($parts[1]);
+            return $formatTimePart($range);
         };
 
         $patients = $patientIdentities->values();
@@ -86,7 +91,7 @@
                 'time' => $timeRange ?: ($appointment->appointment_time ?: '-'),
                 'telehealth' => $telehealth ? [
                     'date' => $formatDate($telehealth['date']),
-                    'time' => $telehealth['time'],
+                    'time' => $formatTimeRange($telehealth['time']),
                     'nurse' => $telehealth['nurse'],
                 ] : null,
                 'status' => $appointment->status,

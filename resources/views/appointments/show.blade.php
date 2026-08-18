@@ -55,27 +55,32 @@
             };
         };
 
-        // The ERP stores the Schedule Appointment's precise time range as "16:29:00 - 19:32:00" —
-        // reformat each side to match the rest of the app's 12-hour time style.
-        $formatTimeRange = function (?string $range) {
+        // The ERP stores time as either a "16:29:00 - 19:32:00" range (Schedule Appointment)
+        // or a bare "08:00 - 08:15" / single value (Telehealth) — always 24-hour, never AM/PM.
+        // Reformat every side to the app's 12-hour AM/PM style, single time or range alike.
+        $formatTimePart = function (string $t) {
+            $t = trim($t);
+            if ($t === '') {
+                return $t;
+            }
+
+            try {
+                return \Carbon\Carbon::parse($t)->format('g:i A');
+            } catch (\Throwable $e) {
+                return $t;
+            }
+        };
+        $formatTimeRange = function (?string $range) use ($formatTimePart) {
             if (empty($range)) {
                 return null;
             }
 
             $parts = array_map('trim', explode(' - ', $range));
-            if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-                return $range;
+            if (count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '') {
+                return $formatTimePart($parts[0]).' – '.$formatTimePart($parts[1]);
             }
 
-            $part = function (string $t) {
-                try {
-                    return \Carbon\Carbon::createFromFormat('H:i:s', $t)->format('g:i A');
-                } catch (\Throwable $e) {
-                    return $t;
-                }
-            };
-
-            return $part($parts[0]).' – '.$part($parts[1]);
+            return $formatTimePart($range);
         };
 
         $meta = $statusMeta($appointment->status);
@@ -83,6 +88,7 @@
         $hasSchedule = !empty($appointment->appointment_date);
         $scheduleTimeRange = $formatTimeRange($schedule['timeRange'] ?? null);
         $locationAddress = $schedule['address'] ?? null;
+        $telehealthTime = $telehealth ? $formatTimeRange($telehealth['time'] ?? null) : null;
 
         // Mirrors the ERP admin's "Schedule Appointment" / "Telehealth Appointment" split —
         // a patient can have either, both, or neither. When only telehealth exists, it leads
@@ -150,10 +156,10 @@
                             {{ $isCarbon ? $dateObj->format('l') : 'Appointment date' }}
                         @endif
                     </p>
-                    <h1 class="text-lg font-bold leading-tight tracking-tight sm:text-xl">{{ $isCarbon ? $dateObj->format('F j, Y') : $dateObj }}</h1>
+                    <h1 class="text-lg font-bold leading-tight tracking-tight sm:text-xl">{{ $isCarbon ? $dateObj->format('m/d/Y') : $dateObj }}</h1>
                     <p class="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-brand-100/80">
                         <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" d="M12 7v5l3 2" /></svg>
-                        {{ $heroIsTelehealth ? ($telehealth['time'] ?: '-') : ($scheduleTimeRange ?: ($appointment->appointment_time ?: '-')) }}
+                        {{ $heroIsTelehealth ? ($telehealthTime ?: '-') : ($scheduleTimeRange ?: ($appointment->appointment_time ?: '-')) }}
                         @if ($heroIsTelehealth && !empty($telehealth['nurse']))
                             <span class="text-brand-200">&middot;</span> Nurse: {{ $telehealth['nurse'] }}
                         @endif
@@ -223,13 +229,13 @@
                     </span>
                     <div>
                         <span class="inline-flex items-center rounded-md bg-info-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-info-700">Telehealth Appointment</span>
-                        <p class="mt-1 text-base font-semibold text-slate-900">{{ $telehealthIsCarbon ? $telehealthDateObj->format('F j, Y') : $telehealthDateObj }}</p>
+                        <p class="mt-1 text-base font-semibold text-slate-900">{{ $telehealthIsCarbon ? $telehealthDateObj->format('m/d/Y') : $telehealthDateObj }}</p>
                     </div>
                 </div>
                 <dl class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-info-100 pt-4 sm:border-t-0 sm:pt-0">
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-info-600">Time</dt>
-                        <dd class="mt-0.5 text-sm font-semibold text-slate-800">{{ $telehealth['time'] ?: '-' }}</dd>
+                        <dd class="mt-0.5 text-sm font-semibold text-slate-800">{{ $telehealthTime ?: '-' }}</dd>
                     </div>
                     @if (!empty($telehealth['nurse']))
                         <div>
@@ -271,7 +277,7 @@
                             </span>
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-semibold text-slate-900">{{ $document->document_name ?: 'Document' }}</p>
-                                <p class="mt-0.5 truncate text-xs text-slate-500">Doc #{{ $document->erp_document_id }} &middot; {{ $formatBytes($document->size_in_bytes) }}</p>
+                                <p class="mt-0.5 truncate text-xs text-slate-500">Doc #{{ $document->erp_document_id }}{{ empty($document->size_in_bytes) ? '' : ' · '.$formatBytes($document->size_in_bytes) }}</p>
                             </div>
                         </div>
                         <a href="{{ route('documents.download', $document) }}" aria-label="Download {{ $document->document_name ?: 'document' }}" class="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-2 focus-visible:ring-brand-500/40 active:scale-[0.97] sm:w-auto sm:py-2">

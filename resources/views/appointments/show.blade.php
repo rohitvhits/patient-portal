@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            <dl class="relative grid grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-3 sm:grid-cols-4 sm:gap-y-0 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+            <dl class="relative grid min-w-0 grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-3 sm:grid-cols-4 sm:gap-y-0 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
                 <div>
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.5 8a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM4 20.5a8 8 0 0116 0" /></svg>

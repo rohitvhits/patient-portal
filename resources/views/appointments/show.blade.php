@@ -148,7 +148,7 @@
                     </div>
                 @endif
                 <div class="min-w-0">
-                    <p class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
+                    <p class="flex items-center gap-1.5 truncate text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         @if ($heroIsTelehealth)
                             <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M15.5 10.5l6-3.5v10l-6-3.5" /></svg>
                             Telehealth Appointment
@@ -156,8 +156,8 @@
                             {{ $isCarbon ? $dateObj->format('l') : 'Appointment date' }}
                         @endif
                     </p>
-                    <h1 class="text-lg font-bold leading-tight tracking-tight sm:text-xl">{{ $isCarbon ? $dateObj->format('m/d/Y') : $dateObj }}</h1>
-                    <p class="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-brand-100/80">
+                    <h1 class="truncate text-lg font-bold leading-tight tracking-tight sm:text-xl">{{ $isCarbon ? $dateObj->format('m/d/Y') : $dateObj }}</h1>
+                    <p class="mt-0.5 flex items-center gap-1.5 truncate text-xs font-medium text-brand-100/80">
                         <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" d="M12 7v5l3 2" /></svg>
                         {{ $heroIsTelehealth ? ($telehealthTime ?: '-') : ($scheduleTimeRange ?: ($appointment->appointment_time ?: '-')) }}
                         @if ($heroIsTelehealth && !empty($telehealth['nurse']))
@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            <dl class="relative grid grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-3 sm:grid-cols-4 sm:gap-y-0 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+            <dl class="relative grid shrink-0 grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-3 sm:grid-cols-4 sm:gap-y-0 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
                 <div>
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.5 8a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM4 20.5a8 8 0 0116 0" /></svg>

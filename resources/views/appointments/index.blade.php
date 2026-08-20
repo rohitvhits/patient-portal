@@ -54,7 +54,13 @@
                 return null;
             }
 
-            $parts = array_map('trim', explode(' - ', $range));
+            // Schedule Appointment ranges come with spaces ("16:29:00 - 19:32:00"), but
+            // telehealth's `telehealth_time_frame` column is stored tight ("10:00-11:00") —
+            // split on a dash with optional surrounding spaces so both are caught. Without
+            // this, a tight range silently fails the split and gets handed whole to Carbon,
+            // which parses "10:00-11:00" as 10:00 with a "-11:00" UTC offset and drops the
+            // end time entirely.
+            $parts = array_map('trim', preg_split('/\s*-\s*/', trim($range), 2));
             if (count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '') {
                 return $formatTimePart($parts[0]).' – '.$formatTimePart($parts[1]);
             }

@@ -168,14 +168,14 @@
             </div>
 
             <dl class="relative grid min-w-0 grid-cols-2 gap-x-6 gap-y-2 border-t border-white/10 pt-3 sm:grid-cols-4 sm:gap-y-0 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
-                <div>
+                <div class="min-w-0">
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.5 8a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM4 20.5a8 8 0 0116 0" /></svg>
                         Full Name
                     </dt>
                     <dd class="truncate text-sm font-semibold text-white">{{ $patientIdentity?->full_name ?: 'Not available' }}</dd>
                 </div>
-                <div>
+                <div class="min-w-0">
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21V8l9-5 9 5v13M9 21v-6h6v6" /></svg>
                         Agency
@@ -183,7 +183,7 @@
                     <dd class="truncate text-sm font-semibold text-white">{{ $agencyName }}</dd>
                 </div>
                 @if ($locationAddress)
-                    <div>
+                    <div class="min-w-0">
                         <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                             <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-6.5 7-11.5a7 7 0 10-14 0C5 14.5 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.25" /></svg>
                             Location
@@ -191,7 +191,7 @@
                         <dd class="truncate text-sm font-semibold text-white" title="{{ $locationAddress }}">{{ $locationAddress }}</dd>
                     </div>
                 @endif
-                <div>
+                <div class="min-w-0">
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.5h6M12 3.5v3M6 20.5h12a2 2 0 002-2v-6a6 6 0 10-16 0v6a2 2 0 002 2z" /></svg>
                         Service
@@ -214,7 +214,7 @@
                         @endif
                     </dd>
                 </div>
-                <div>
+                <div class="min-w-0">
                     <dt class="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-200">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.5h7l4 4V20a1 1 0 01-1 1H7a1 1 0 01-1-1V4.5a1 1 0 011-1z" /><path stroke-linecap="round" stroke-linejoin="round" d="M14 3.5V8h4" /></svg>
                         Documents

@@ -140,7 +140,7 @@
         <div class="relative flex flex-col gap-3 overflow-hidden bg-gradient-to-br from-[#24425a] via-brand-800 to-brand-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:py-4">
             <div class="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full border border-white/10" aria-hidden="true"></div>
             <div class="pointer-events-none absolute right-16 top-10 h-24 w-24 rounded-full border border-white/10" aria-hidden="true"></div>
-            <div class="relative flex min-w-0 items-center gap-3">
+            <div class="relative flex min-w-0 items-center gap-3 sm:min-w-max sm:shrink-0">
                 @if ($isCarbon)
                     <div class="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-white/[0.08] ring-1 ring-white/15">
                         <span class="text-[0.55rem] font-semibold uppercase leading-none tracking-wider text-brand-200">{{ $dateObj->format('M') }}</span>

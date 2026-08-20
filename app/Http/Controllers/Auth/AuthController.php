@@ -118,7 +118,10 @@ class AuthController extends Controller
         $patientUser->update(['last_login_at' => now()]);
 
         $request->session()->forget('otp_mobile');
-        Auth::guard('patient')->login($patientUser, remember: true);
+        // No "remember me" — a long-lived remember cookie would silently re-log the patient
+        // in after the session itself expires, defeating the SESSION_LIFETIME auto-logout
+        // (see .env). Session-only login so inactivity actually logs the patient out.
+        Auth::guard('patient')->login($patientUser);
         $request->session()->regenerate();
 
         $this->activityLog->log($patientUser->id, 'login_success');

@@ -19,10 +19,44 @@ class AppointmentController extends Controller
     ) {
     }
 
+    /**
+     * The ERP call this page depends on is synchronous and can take a couple of
+     * seconds — long enough that a plain browser navigation (typed URL, refresh,
+     * bookmark) shows nothing but a blank tab the whole time, with no way for any
+     * client-side loader to render (nothing has reached the browser yet). So this
+     * route now serves two shapes on the same URL: a fast "shell" (no ERP call,
+     * just the chrome + a skeleton) for a normal navigation, and — the instant that
+     * shell has loaded — its own JS immediately re-requests the same URL with an
+     * X-Requested-With header, which this method detects via $request->ajax() and
+     * answers with the real, ERP-backed content as a JSON-wrapped HTML fragment
+     * (see indexFragment()). In-app link/button clicks still get the full-page
+     * overlay from partials/page-loader.blade.php on top of this, same as before.
+     */
     public function index(Request $request)
     {
         $patientUser = Auth::guard('patient')->user();
 
+        if ($request->ajax()) {
+            return $this->indexFragment($request, $patientUser);
+        }
+
+        return view('appointments.index', [
+            // Read from the local audit table only — no live ERP call — so the
+            // greeting can render with the patient's name on the very first,
+            // instant paint. It was synced from a real ERP response on an earlier
+            // request and rarely goes stale (see HANDOFF.md §6).
+            'patientIdentities' => $patientUser->patients()->get()->keyBy('erp_patient_id'),
+            'patientUser' => $patientUser,
+            'filters' => [
+                'search' => trim((string) $request->query('search', '')),
+                'status' => trim((string) $request->query('status', '')),
+                'agency' => trim((string) $request->query('agency', '')),
+            ],
+        ]);
+    }
+
+    protected function indexFragment(Request $request, PatientUser $patientUser)
+    {
         $remote = $this->erpApi->appointments($patientUser->mobile);
         $appointmentTelehealth = collect();
         $appointmentSchedules = collect();
@@ -116,19 +150,30 @@ class AppointmentController extends Controller
 
         $this->activityLog->log($patientUser->id, 'appointment_list_viewed');
 
-        return view('appointments.index', [
-            'appointments' => $appointments,
-            'appointmentTelehealth' => $appointmentTelehealth,
-            'appointmentSchedules' => $appointmentSchedules,
-            'patientIdentities' => $patientIdentities,
-            'patientUser' => $patientUser,
-            'statusOptions' => $statusOptions,
-            'agencyOptions' => $agencyOptions,
-            'filters' => ['search' => $search, 'status' => $status, 'agency' => $agency],
-            'erpUnavailable' => $erpUnavailable,
+        $filters = ['search' => $search, 'status' => $status, 'agency' => $agency];
+
+        return response()->json([
+            'html' => view('appointments._results', [
+                'appointments' => $appointments,
+                'appointmentTelehealth' => $appointmentTelehealth,
+                'appointmentSchedules' => $appointmentSchedules,
+                'patientIdentities' => $patientIdentities,
+                'filters' => $filters,
+                'erpUnavailable' => $erpUnavailable,
+            ])->render(),
+            'total' => $appointments->total(),
+            'statusOptions' => $statusOptions->values(),
+            'agencyOptions' => $agencyOptions->values(),
         ]);
     }
 
+    /**
+     * Same shell-then-fragment split as index() above, and for the same reason —
+     * appointmentDetailAndDocuments() is a live, synchronous ERP round trip. The
+     * ownership check stays in the shell branch: it's a local-DB-only check (no ERP
+     * call needed) and must reject a cross-patient id before any fragment fetch is
+     * even offered, not just before the fragment renders.
+     */
     public function show(Request $request, Appointment $appointment)
     {
         $patientUser = Auth::guard('patient')->user();
@@ -138,6 +183,18 @@ class AppointmentController extends Controller
             abort(403);
         }
 
+        if ($request->ajax()) {
+            return $this->showFragment($request, $patientUser, $appointment);
+        }
+
+        return view('appointments.show', [
+            'appointment' => $appointment,
+            'patientUser' => $patientUser,
+        ]);
+    }
+
+    protected function showFragment(Request $request, PatientUser $patientUser, Appointment $appointment)
+    {
         // Detail and documents are two independent ERP calls — fired concurrently
         // (one connection pool) instead of one-after-another, so this page waits on
         // the slower of the two calls rather than the sum of both.
@@ -224,16 +281,17 @@ class AppointmentController extends Controller
 
         $this->activityLog->log($patientUser->id, 'document_list_viewed', "appointment_id={$appointment->id}");
 
-        return view('appointments.show', [
-            'appointment' => $appointment,
-            'appointmentAgencyName' => $appointmentAgencyName,
-            'telehealth' => $telehealth,
-            'schedule' => $schedule,
-            'documents' => $documents,
-            'patientIdentity' => $patientIdentity,
-            'patientUser' => $patientUser,
-            'appointmentUnavailable' => $appointmentUnavailable,
-            'documentsUnavailable' => $documentsUnavailable,
+        return response()->json([
+            'html' => view('appointments._detail-content', [
+                'appointment' => $appointment,
+                'appointmentAgencyName' => $appointmentAgencyName,
+                'telehealth' => $telehealth,
+                'schedule' => $schedule,
+                'documents' => $documents,
+                'patientIdentity' => $patientIdentity,
+                'appointmentUnavailable' => $appointmentUnavailable,
+                'documentsUnavailable' => $documentsUnavailable,
+            ])->render(),
         ]);
     }
 

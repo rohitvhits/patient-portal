@@ -5,7 +5,7 @@
 @section('subtitle', 'Sign in securely using the mobile number associated with your appointment.')
 
 @section('content')
-    <form method="POST" action="{{ route('login.request-otp') }}">
+    <form method="POST" action="{{ route('login.request-otp') }}" data-button-loader>
         @csrf
 
         <div>
@@ -36,7 +36,8 @@
 
         <button
             type="submit"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-success-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-success-700 focus:outline-none focus:ring-4 focus:ring-success-500/20"
+            data-loading-text="Sending verification code…"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-success-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-success-700 focus:outline-none focus:ring-4 focus:ring-success-500/20 disabled:hover:bg-success-600"
         >
             Send verification code
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

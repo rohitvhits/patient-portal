@@ -22,7 +22,7 @@
     <div class="flex min-h-full flex-col">
         <header class="sticky top-0 z-30 border-b border-black/10 bg-brand-900 text-white">
             <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                <a href="{{ route('appointments.index') }}" class="flex min-w-0 items-center gap-2.5 transition hover:opacity-90">
+                <a href="{{ route('appointments.index') }}" data-loader-text="Loading your appointments…" class="flex min-w-0 items-center gap-2.5 transition hover:opacity-90">
                     <img src="{{ asset('img/logo-ny.png') }}" alt="NY Best Medical" class="h-9 w-auto max-w-[200px] object-contain">
                 </a>
 
@@ -117,5 +117,7 @@
             });
         });
     </script>
+
+    @include('partials.page-loader')
 </body>
 </html>

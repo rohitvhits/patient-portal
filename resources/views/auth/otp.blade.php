@@ -9,7 +9,7 @@
         Code sent to <span class="font-semibold text-slate-900">{{ $mobile }}</span>
     </p>
 
-    <form method="POST" action="{{ route('login.verify-otp') }}" id="otp-form">
+    <form method="POST" action="{{ route('login.verify-otp') }}" id="otp-form" data-button-loader>
         @csrf
 
         {{-- flex-1 + min-w-0 + a max-width cap means these 6 boxes always share whatever
@@ -33,7 +33,8 @@
 
         <button
             type="submit"
-            class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-success-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-success-700 focus:outline-none focus:ring-4 focus:ring-success-500/20"
+            data-loading-text="Verifying…"
+            class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-success-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-success-700 focus:outline-none focus:ring-4 focus:ring-success-500/20 disabled:hover:bg-success-600"
         >
             Verify &amp; sign in
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -49,10 +50,10 @@
             </svg>
             Change number
         </a>
-        <form method="POST" action="{{ route('login.request-otp') }}">
+        <form method="POST" action="{{ route('login.request-otp') }}" data-button-loader>
             @csrf
             <input type="hidden" name="mobile" value="{{ $mobile }}">
-            <button type="submit" class="font-semibold text-brand-700 transition hover:text-brand-900">Resend code</button>
+            <button type="submit" data-loading-text="Resending…" class="font-semibold text-brand-700 transition hover:text-brand-900">Resend code</button>
         </form>
     </div>
 

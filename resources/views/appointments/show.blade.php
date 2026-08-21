@@ -17,7 +17,12 @@
          below. Starts out as a skeleton so *something* meaningful is on screen
          immediately, even on a hard refresh / typed URL / bookmark, before the live
          ERP-backed detail + documents have come back. --}}
-    <div id="appointment-detail-results" data-fragment-url="{{ request()->fullUrl() }}" aria-live="polite">
+    {{-- Path + query only (not fullUrl()) — behind a load balancer that terminates
+         TLS, Laravel can misdetect the scheme as http even though the page itself is
+         https, which turns this fetch() into a blocked mixed-content request with no
+         visible error except "failed to fetch". A relative URL always inherits the
+         current page's real scheme, so it can't hit that trap. --}}
+    <div id="appointment-detail-results" data-fragment-url="{{ request()->getRequestUri() }}" aria-live="polite">
         <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div class="h-24 animate-pulse bg-gradient-to-br from-[#24425a] via-brand-800 to-brand-950 sm:h-20"></div>
         </section>
